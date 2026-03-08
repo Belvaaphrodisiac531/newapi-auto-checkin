@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多网站自动签到助手</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 420px;
+      min-height: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .container { padding: 16px; }
+
+    .header { text-align: center; color: white; margin-bottom: 16px; }
+    .header h1 { font-size: 18px; margin-bottom: 4px; }
+    .header p { font-size: 11px; opacity: 0.9; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 12px;
+    }
+
+    .status {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .status-item { text-align: center; }
+    .status-label { font-size: 11px; color: #666; margin-bottom: 3px; }
+    .status-value { font-size: 18px; font-weight: bold; color: #667eea; }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover { box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-sm {
+      width: auto;
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+    .btn-add {
+      background: #28a745;
+      color: white;
+      margin-top: 10px;
+    }
+    .btn-add:hover { background: #218838; }
+    .btn-del {
+      background: none;
+      color: #dc3545;
+      padding: 2px 6px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-del:hover { color: #a71d2a; }
+
+    .sites-list { margin-top: 12px; }
+
+    .site-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 12px;
+      gap: 8px;
+    }
+    .site-item .toggle { cursor: pointer; flex-shrink: 0; }
+    .site-item .site-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .site-status {
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .site-status.success { background: #d4edda; color: #155724; }
+    .site-status.already { background: #d1ecf1; color: #0c5460; }
+    .site-status.failed { background: #f8d7da; color: #721c24; }
+    .site-status.pending { background: #fff3cd; color: #856404; }
+
+    /* Add site form */
+    .add-form {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f0f0f0;
+      border-radius: 8px;
+    }
+    .add-form.show { display: block; }
+    .add-form input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      outline: none;
+    }
+    .add-form input:focus { border-color: #667eea; }
+    .add-form .form-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .add-form .form-actions .btn {
+      flex: 1;
+      padding: 8px;
+    }
+    .btn-cancel { background: #6c757d; color: white; }
+
+    .last-check {
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      margin-top: 10px;
+    }
+
+    .loading { text-align: center; padding: 16px; color: #666; }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 8px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .footer {
+      text-align: center;
+      color: white;
+      font-size: 10px;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>多网站自动签到</h1>
+      <p>New API 站点自动签到 | 每天 09:00</p>
+    </div>
+
+    <div class="card">
+      <div class="status">
+        <div class="status-item">
+          <div class="status-label">站点</div>
+          <div class="status-value" id="totalSites">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">成功</div>
+          <div class="status-value" id="successCount" style="color:#28a745">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">已签</div>
+          <div class="status-value" id="alreadyCount" style="color:#17a2b8">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">失败</div>
+          <div class="status-value" id="failedCount" style="color:#dc3545">-</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="checkInBtn">
+        <span id="btnText">立即签到</span>
+      </button>
+
+      <div class="sites-list" id="sitesList"></div>
+
+      <button class="btn btn-sm btn-add" id="showAddBtn">+ 添加站点</button>
+
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="btn btn-sm" style="flex: 1; background: #17a2b8; color: white;" id="exportBtn">导出配置</button>
+        <button class="btn btn-sm" style="flex: 1; background: #ffc107; color: #333;" id="importBtn">导入配置</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display: none;">
+
+      <div class="add-form" id="addForm">
+        <input type="text" id="newDomain" placeholder="输入域名，如 example.com">
+        <div class="form-actions">
+          <button class="btn btn-primary" id="confirmAddBtn">添加</button>
+          <button class="btn btn-cancel" id="cancelAddBtn">取消</button>
+        </div>
+      </div>
+
+      <div class="last-check" id="lastCheck">暂无签到记录</div>
+    </div>
+
+    <div class="footer">v1.0.0</div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
